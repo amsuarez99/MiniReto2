@@ -15,8 +15,6 @@ typedef struct{
     char password[MAX];
 } User;
 
-
-
 // return a user
 User inputUser() {
     User temp;
@@ -172,6 +170,7 @@ int main(int argc, char *argv[])
         // //Received the data from the server
         // read_size = SocketReceive(hSocket, server_reply, 200);
         // printf("Server Response : %s\n\n",server_reply);
+        fflush(stdin);
     } while(getc(stdin) != '4');
 
     close(hSocket);

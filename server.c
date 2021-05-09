@@ -71,10 +71,10 @@ int main(int argc, char *argv[])
     {
         printf("Waiting for incoming connections...\n");
         clientLen = sizeof(struct sockaddr_in);
+
         //accept connection from an incoming client
         sock = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&clientLen);
-        if (sock < 0)
-        {
+        if (sock < 0) {
             perror("Accept failed");
             return 1;
         }
@@ -94,13 +94,8 @@ int main(int argc, char *argv[])
             {
                 strcpy(message,"Authenticated");
                 send(sock, message, strlen(message), 0);
-                printf("%s\n", message);
-            }
-            else
-            {
-                strcpy(message,"Invalid Usernme !\nClosing the socket...\n");
+            } else {
                 send(sock, message, strlen(message), 0);
-                printf("%s", message);
                 break;
             }
             // Send some data
@@ -113,6 +108,7 @@ int main(int argc, char *argv[])
             memset(message, '\0', sizeof message);
             sleep(1);
         }
+        printf("Closing socket...\n");
         close(sock);
     }
     return 0;
