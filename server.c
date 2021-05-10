@@ -340,6 +340,10 @@ int validate(User usr){
 	return 0;
 }
 
+void opInsert(const char* params) {
+    printf("Hola");
+}
+
 int main(int argc, char *argv[])
 {
     int socket_desc, sock, clientLen, read_size;
@@ -411,20 +415,20 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        //Receive a reply from the client
-        while(recv(sock, client_message, sizeof(User), 0) > -1) {
-            char *opt;
+        // Receive option from server
+        while(recv(sock, client_message, 1, 0) > -1) {
+            char opt;
             memcpy(&opt, client_message, 1);
             enum OPERATION op;
-            op = opt - "0";
-
+            op = opt - '0';
+            // Receiver params from server
+            recv(sock, client_message, strlen(client_message), 0);
             switch(op){
                 case INSERT:
+                    opInsert(client_message);
                 break;
-                //INSERT();
                 case QUERY:
                 break;
-                //SELECT();
                 case JOIN:
                 break;
                 //JOIN();

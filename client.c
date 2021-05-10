@@ -7,6 +7,7 @@
 #include <string.h>
 
 #define RESPONSE_SIZE 3000
+#define REQUEST_SIZE 200
 #define MAX 50
 #define SERVER_PORT 8083
 
@@ -61,18 +62,6 @@ short SocketCreate(void)
     return hSocket;
 }
 
-// // Serializes the usr to a single buffer
-// int serialize_usr(unsigned char *buffer, struct User* usr) {
-//     int x;
-//     for(x = 0; x < strlen(usr->username); x++) {
-//         buffer[i] = *(usr->username + i);
-//     }
-//     for(int i = x; i < strlen(usr->password); i++) {
-//         buffer[i] = *(usr->password + i);
-//     }
-//     return buffer + 1;
-// }
-
 // Send the data to the server and set the timeout of 20 seconds
 int SocketSend(int hSocket,char* Rqst,short lenRqst)
 {
@@ -90,7 +79,7 @@ int SocketSend(int hSocket,char* Rqst,short lenRqst)
 }
 
 //receive the data from the server
-int SocketReceive(int hSocket,char* Rsp,short RvcSize)
+int SocketReceive(int hSocket,char* Rsp, int RvcSize)
 {
     int shortRetval = -1;
     struct timeval tv;
@@ -105,7 +94,6 @@ int SocketReceive(int hSocket,char* Rsp,short RvcSize)
 }
 
 int authenticate(int socket, const struct sockaddr *dest, socklen_t dlen, const User usr) {
-
     unsigned char buffer[sizeof(User)], response[RESPONSE_SIZE] = {0};
     memcpy(buffer, &usr, sizeof(buffer));
     sendto(socket, buffer, sizeof(buffer), 0, dest, dlen);
@@ -118,26 +106,13 @@ int authenticate(int socket, const struct sockaddr *dest, socklen_t dlen, const 
     }
     return -1;
 }
-// int SELECT(int socket, const struct sockaddr *dest, socklen_t dlen, char *tabla, char where*, char *cond){
-
-//     unsigned char response[RESPONSE_SIZE] = {0};
-    
-//     select query;
-//     query.table = tabla;
-//     query.where = where;
-//     query.cond = cond;
-    
-//     sendto(socket, query, sizeof(select), 0, dest, dlen);
-//     SocketReceive(socket, response, RESPONSE_SIZE);
-    
-// }
 
 void printMenu() {
     printf("Selecciona la opción que deseas realizar:\n");
-    printf("1) Insertar\n");
-    printf("2) Query\n");
-    printf("3) Join\n");
-    printf("4) Salir\n");
+    printf("0) Insertar\n");
+    printf("1) Query\n");
+    printf("2) Join\n");
+    printf("3) Salir\n");
     printf("?> ");
 }
 
@@ -176,37 +151,47 @@ int main(int argc, char *argv[])
         perror("Credenciales inválidas!\n");
         exit(EXIT_FAILURE);
     }
+
     
     enum OPERATION op;
+    char *params = (char*) malloc(sizeof(char) * REQUEST_SIZE);
+    memset(params, '\0', REQUEST_SIZE);
     // Authenticated -- Run program
     do {
         printMenu();
-        scanf("%d", &op);
+        fflush(stdin);
+        char opt;
+        enum OPERATION op;
+
+        opt = getc(stdin);
+        op = opt - '0';
+        // Send option to server
+        SocketSend(hSocket, &opt, 1);
         switch(op) {
             case INSERT: 
+                printf("FORMATO [TABLE] [ATR1] [ATR2] [ATR3]\n");
+                gets(params);
+                // validateInsert(params);
                 break;
             case SELECT:
-            
-            	// scanf("%s", tabla);
-            	// scanf("%s", where);
-            	// scanf("%s" cond);
-                // SELECT(hSocket, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in),tabla, where, cond);
+                printf("FORMATO [TABLE] [ATR1] [OPERATOR] [VALUE]\n");
+                gets(params);
+                // validateSelect(params);
                 break;
             case JOIN:
+                printf("FORMATO [TABLE] [TABLE]\n");
+                gets(params);
+                // validateJoin(params);
+                break;
+            case DISCONNECT:
                 break;
             default:
                 printf("Invalid option\n");
                 break;
         }
-
-        // printf("Enter the Message: ");
-        // gets(SendToServer);
-        // //Send data to the server
-        // SocketSend(hSocket, SendToServer, strlen(SendToServer));
-        // //Received the data from the server
-        // read_size = SocketReceive(hSocket, server_reply, 200);
-        // printf("Server Response : %s\n\n",server_reply);
-        fflush(stdin);
+        // Send params to server
+        SocketSend(hSocket, params, strlen(params));
+        memset(params, '\0', REQUEST_SIZE);
     } while(op != DISCONNECT);
 
     close(hSocket);
