@@ -65,9 +65,7 @@ struct UserList users;
 struct ProductList products;
 struct OrderList orders;
 
-
-short SocketCreate(void)
-{
+short SocketCreate(void) {
     short hSocket;
     printf("Create the socket\n");
     hSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -101,7 +99,7 @@ void insertOrder(Order *tmpOrder) {
     Order* newOrder = (Order *) malloc(sizeof(Order));
     memcpy(newOrder, tmpOrder, sizeof(Order));
 
-	orderNode->usr = newOrder;
+	orderNode->order = newOrder;
 	orderNode->next = NULL;
 
 	if(orders.head == NULL) {
@@ -113,6 +111,26 @@ void insertOrder(Order *tmpOrder) {
 		orders.tail = orders.tail->next;
 	}
 	orders.size++;
+}
+
+void insertProduct(Product *tmpProduct) {
+	struct ProductNode* productNode;
+	productNode = (struct ProductNode*) malloc(sizeof(struct ProductNode));
+    Product* newProduct = (Product *) malloc(sizeof(Product));
+    memcpy(newProduct, tmpProduct, sizeof(Product));
+
+	productNode->product = newProduct;
+	productNode->next = NULL;
+
+	if(products.head == NULL) {
+		products.head = productNode;
+		products.tail = productNode;
+	}
+	else {
+		products.tail->next = productNode;
+		products.tail = products.tail->next;
+	}
+	products.size++;
 }
 
 void readOrders() {
@@ -130,15 +148,44 @@ void readOrders() {
     printf("File opened sucessfully\n");
     #endif
     while(!feof(file)) {
-        memset(order->oid, '\0', sizeof(order->username));
-        memset(order->pid, '\0', sizeof(order->username));
-        fscanf(file, "%s %s %d", order->username, order->password, order->qty);
+        memset(order->oid, '\0', sizeof(order->oid));
+        memset(order->pid, '\0', sizeof(order->pid));
+        fscanf(file, "%s %s %d", order->oid, order->pid, &order->qty);
         insertOrder(order);
     }
     if(fclose(file) != 0) {
         perror("Error in fclose\n");
         exit(EXIT_FAILURE);
     }
+    printf("File closed sucessfully\n");
+}
+
+void readProducts() {
+    FILE *file;
+    char* fileName = "products.txt";
+    Product* product = (Product*) malloc(sizeof(Product));
+
+    file = fopen(fileName, "r+");
+	if(file == NULL) {
+        perror("Error in fopen\n");
+        exit(EXIT_FAILURE);
+	}
+    products.size = 0;
+    #if DEBUG == 1
+    printf("File opened sucessfully\n");
+    #endif
+    while(!feof(file)) {
+        memset(product->pid, '\0', sizeof(product->pid));
+        memset(product->pname, '\0', sizeof(product->pname));
+        memset(product->description, '\0', sizeof(product->description));
+        fscanf(file, "%s %s %f %[^\n]", product->pid, product->pname, &product->price, product->description);
+        insertProduct(product);
+    }
+    if(fclose(file) != 0) {
+        perror("Error in fclose\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("File closed sucessfully\n");
 }
 
 void readConfig() {
@@ -166,33 +213,7 @@ void readConfig() {
         perror("Error in fclose\n");
         exit(EXIT_FAILURE);
     }
-}
-
-void readConfig() {
-    FILE *file;
-    char* fileName = "config.txt";
-    User* usr = (User*) malloc(sizeof(User));
-
-
-    file = fopen(fileName, "r+");
-	if(file == NULL) {
-        perror("Error in fopen\n");
-        exit(EXIT_FAILURE);
-	}
-    users.size = 0;
-    #if DEBUG == 1
-    printf("File opened sucessfully\n");
-    #endif
-    while(!feof(file)) {
-        memset(usr->username, '\0', sizeof(usr->username));
-        memset(usr->password , '\0', sizeof(usr->password));
-        fscanf(file, "%s %s", usr->username, usr->password);
-        insertUser(usr);
-    }
-    if(fclose(file) != 0) {
-        perror("Error in fclose\n");
-        exit(EXIT_FAILURE);
-    }
+    printf("File closed sucessfully\n");
 }
 
 void printUsers() {
@@ -203,6 +224,21 @@ void printUsers() {
 	}
 }
 
+void printProducts() {
+	struct ProductNode *curr = products.head;
+	while(curr != NULL) {
+        printf("%s %s %f %s\n", curr->product->pid, curr->product->pname, curr->product->price, curr->product->description);
+        curr = curr->next;
+	}
+}
+
+void printOrders() {
+	struct OrderNode *curr = orders.head;
+	while(curr != NULL) {
+        printf("%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
+        curr = curr->next;
+	}
+}
 
 int BindCreatedSocket(int hSocket)
 {
@@ -250,7 +286,14 @@ int main(int argc, char *argv[])
 
     // Read config file
     readConfig();
+    readProducts();
+    readOrders();
+
+    #if DEBUG == 1
     printUsers();
+    printProducts();
+    printOrders();
+    #endif
 
     //Accept an incoming connection
     while(1)
