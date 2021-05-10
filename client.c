@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -9,6 +8,13 @@
 #define RESPONSE_SIZE 200
 #define MAX 50
 #define SERVER_PORT 8080
+
+enum OPTION {
+    INSERT,
+    QUERY,
+    JOIN,
+    DISCONNECT,
+};
 
 typedef struct{
     char username[MAX];
@@ -23,18 +29,6 @@ User inputUser() {
     scanf("%s", temp.username);
     printf("Contraseña> ");
     scanf("%s", temp.password);
-
-
-    // Allocate memory for the pointers of the struct
-    // User *u = malloc(sizeof(struct User));
-
-    // // Allocate memory for contents of pointers.
-    // p->username = malloc(strlen(username) + 1);
-    // p->password = malloc(strlen(password) + 1);
-
-    // strcpy(u->name, username);
-    // strcpy(u->password, password);
-
     return temp;
 }
 
@@ -47,18 +41,6 @@ short SocketCreate(void)
     hSocket = socket(AF_INET, SOCK_STREAM, 0);
     return hSocket;
 }
-
-// // Serializes the usr to a single buffer
-// int serialize_usr(unsigned char *buffer, struct User* usr) {
-//     int x;
-//     for(x = 0; x < strlen(usr->username); x++) {
-//         buffer[i] = *(usr->username + i);
-//     }
-//     for(int i = x; i < strlen(usr->password); i++) {
-//         buffer[i] = *(usr->password + i);
-//     }
-//     return buffer + 1;
-// }
 
 // Send the data to the server and set the timeout of 20 seconds
 int SocketSend(int hSocket,char* Rqst,short lenRqst)
@@ -93,18 +75,8 @@ int SocketReceive(int hSocket,char* Rsp,short RvcSize)
 }
 
 int authenticate(int socket, const struct sockaddr *dest, socklen_t dlen, const User usr) {
-
     unsigned char buffer[sizeof(User)], response[RESPONSE_SIZE] = {0};
     memcpy(buffer, &usr, sizeof(buffer));
-    // , *ptr, response[RESPONSE_SIZE] = {0};
-    // ptr = serialize_usr(buffer, usr);
-
-    // 1: call succeeded
-    // 0: call failed
-    // if((sendto(socket, buffer, ptr - buffer, 0, dest, dlen) == ptr - bufer) == 0) {
-    //     perror("No se pudo conectar con el servidor...");
-    //     exit(EXIT_FAILURE);
-    // }
     sendto(socket, buffer, sizeof(buffer), 0, dest, dlen);
     SocketReceive(socket, response, RESPONSE_SIZE);
     #if DEBUG == 1
@@ -118,10 +90,10 @@ int authenticate(int socket, const struct sockaddr *dest, socklen_t dlen, const 
 
 void printMenu() {
     printf("Selecciona la opción que deseas realizar:\n");
-    printf("1) Insertar\n");
-    printf("2) Query\n");
-    printf("3) Join\n");
-    printf("4) Salir\n");
+    printf("0) Insertar\n");
+    printf("1) Query\n");
+    printf("2) Join\n");
+    printf("3) Salir\n");
     printf("?> ");
 }
 
@@ -160,9 +132,23 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    enum OPTION op;
     // Authenticated -- Run program
     do {
         printMenu();
+        scanf("%d", &op);
+        switch(op) {
+            case INSERT: 
+                break;
+            case QUERY:
+                break;
+            case JOIN:
+                break;
+            default:
+                printf("Invalid option\n");
+                break;
+        }
+
         // printf("Enter the Message: ");
         // gets(SendToServer);
         // //Send data to the server
@@ -171,7 +157,7 @@ int main(int argc, char *argv[])
         // read_size = SocketReceive(hSocket, server_reply, 200);
         // printf("Server Response : %s\n\n",server_reply);
         fflush(stdin);
-    } while(getc(stdin) != '4');
+    } while(op != DISCONNECT);
 
     close(hSocket);
     shutdown(hSocket,0);

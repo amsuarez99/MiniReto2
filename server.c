@@ -9,10 +9,57 @@
 #define MAX 50
 #define PORT 8080
 
+
 typedef struct{
     char username[MAX];
     char password[MAX];
 } User;
+
+typedef struct {
+    char 
+} Product;
+
+typedef struct {
+    char oid[MAX];
+    char pid[MAX];
+    int qty;
+} Order;
+
+struct UserNode {
+	User *usr;
+	struct UserNode* next;
+};
+
+struct ProductNode {
+	Product *product;
+	struct ProductNode* next;
+};
+
+struct OrderNode {
+	Order *order;
+	struct OrderNode* next;
+};
+
+struct UserList {
+	int size;
+	struct UserNode* head;
+	struct UserNode* tail;
+};
+
+struct ProductList {
+	int size;
+	struct ProductNode* head;
+	struct ProductNode* tail;
+};
+
+struct OrderList {
+	int size;
+	struct OrderNode* head;
+	struct OrderNode* tail;
+};
+
+struct UserList users;
+
 
 short SocketCreate(void)
 {
@@ -21,6 +68,90 @@ short SocketCreate(void)
     hSocket = socket(AF_INET, SOCK_STREAM, 0);
     return hSocket;
 }
+
+// Insert user to list
+void insertUser(User* tmpUsr) {
+	struct UserNode* userNode;
+	userNode = (struct UserNode*) malloc(sizeof(struct UserNode));
+    User* newUser = (User *) malloc(sizeof(User));
+    memcpy(newUser, tmpUsr, sizeof(User));
+
+	userNode->usr = newUser;
+	userNode->next = NULL;
+
+	if(users.head == NULL) {
+		users.head = userNode;
+		users.tail = userNode;
+	}
+	else {
+		users.tail->next = userNode;
+		users.tail = users.tail->next;
+	}
+	users.size++;
+}
+
+void readConfig() {
+    FILE *file;
+    char* fileName = "config.txt";
+    User* usr = (User*) malloc(sizeof(User));
+
+
+    file = fopen(fileName, "r+");
+	if(file == NULL) {
+        perror("Error in fopen\n");
+        exit(EXIT_FAILURE);
+	}
+    users.size = 0;
+    #if DEBUG == 1
+    printf("File opened sucessfully\n");
+    #endif
+    while(!feof(file)) {
+        memset(usr->username, '\0', sizeof(usr->username));
+        memset(usr->password , '\0', sizeof(usr->password));
+        fscanf(file, "%s %s", usr->username, usr->password);
+        insertUser(usr);
+    }
+    if(fclose(file) != 0) {
+        perror("Error in fclose\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void readConfig() {
+    FILE *file;
+    char* fileName = "config.txt";
+    User* usr = (User*) malloc(sizeof(User));
+
+
+    file = fopen(fileName, "r+");
+	if(file == NULL) {
+        perror("Error in fopen\n");
+        exit(EXIT_FAILURE);
+	}
+    users.size = 0;
+    #if DEBUG == 1
+    printf("File opened sucessfully\n");
+    #endif
+    while(!feof(file)) {
+        memset(usr->username, '\0', sizeof(usr->username));
+        memset(usr->password , '\0', sizeof(usr->password));
+        fscanf(file, "%s %s", usr->username, usr->password);
+        insertUser(usr);
+    }
+    if(fclose(file) != 0) {
+        perror("Error in fclose\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void printUsers() {
+	struct UserNode *curr = users.head;
+	while(curr != NULL) {
+        printf("%s %s\n", curr->usr->username, curr->usr->password);
+        curr = curr->next;
+	}
+}
+
 
 int BindCreatedSocket(int hSocket)
 {
@@ -66,11 +197,16 @@ int main(int argc, char *argv[])
     //Listen
     listen(socket_desc, 3);
 
+    // Read config file
+    readConfig();
+    printUsers();
+
     //Accept an incoming connection
     while(1)
     {
         printf("Waiting for incoming connections...\n");
         clientLen = sizeof(struct sockaddr_in);
+
 
         //accept connection from an incoming client
         sock = accept(socket_desc,(struct sockaddr *)&client,(socklen_t*)&clientLen);
@@ -98,12 +234,6 @@ int main(int argc, char *argv[])
                 send(sock, message, strlen(message), 0);
                 break;
             }
-            // Send some data
-            /* if( send(sock, message, strlen(message), 0) < 0) */
-            /* { */
-            /*     printf("Send failed"); */
-            /*     return 1; */
-            /* } */
             memset(client_message, '\0', sizeof client_message);
             memset(message, '\0', sizeof message);
             sleep(1);
