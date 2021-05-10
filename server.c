@@ -16,7 +16,10 @@ typedef struct{
 } User;
 
 typedef struct {
-    char 
+    char pid[MAX];
+    char pname[MAX];
+    float price;
+    char description[MAX];
 } Product;
 
 typedef struct {
@@ -59,6 +62,8 @@ struct OrderList {
 };
 
 struct UserList users;
+struct ProductList products;
+struct OrderList orders;
 
 
 short SocketCreate(void)
@@ -88,6 +93,52 @@ void insertUser(User* tmpUsr) {
 		users.tail = users.tail->next;
 	}
 	users.size++;
+}
+
+void insertOrder(Order *tmpOrder) {
+	struct OrderNode* orderNode;
+	orderNode = (struct OrderNode*) malloc(sizeof(struct OrderNode));
+    Order* newOrder = (Order *) malloc(sizeof(Order));
+    memcpy(newOrder, tmpOrder, sizeof(Order));
+
+	orderNode->usr = newOrder;
+	orderNode->next = NULL;
+
+	if(orders.head == NULL) {
+		orders.head = orderNode;
+		orders.tail = orderNode;
+	}
+	else {
+		orders.tail->next = orderNode;
+		orders.tail = orders.tail->next;
+	}
+	orders.size++;
+}
+
+void readOrders() {
+    FILE *file;
+    char* fileName = "orders.txt";
+    Order* order = (Order*) malloc(sizeof(Order));
+
+    file = fopen(fileName, "r+");
+	if(file == NULL) {
+        perror("Error in fopen\n");
+        exit(EXIT_FAILURE);
+	}
+    orders.size = 0;
+    #if DEBUG == 1
+    printf("File opened sucessfully\n");
+    #endif
+    while(!feof(file)) {
+        memset(order->oid, '\0', sizeof(order->username));
+        memset(order->pid, '\0', sizeof(order->username));
+        fscanf(file, "%s %s %d", order->username, order->password, order->qty);
+        insertOrder(order);
+    }
+    if(fclose(file) != 0) {
+        perror("Error in fclose\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void readConfig() {
