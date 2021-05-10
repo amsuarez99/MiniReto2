@@ -26,9 +26,10 @@ typedef struct{
 
 typedef struct{
     char table[MAX];
-    char where[2];
-    char cond[MAX];
-} Select;
+    char operator[3];
+    char value[MAX];
+    char attribute[MAX];
+} Query;
 
 typedef struct {
     char pid[MAX];
@@ -51,18 +52,6 @@ User inputUser() {
     scanf("%s", temp.username);
     printf("Contraseña> ");
     scanf("%s", temp.password);
-
-
-    // Allocate memory for the pointers of the struct
-    // User *u = malloc(sizeof(struct User));
-
-    // // Allocate memory for contents of pointers.
-    // p->username = malloc(strlen(username) + 1);
-    // p->password = malloc(strlen(password) + 1);
-
-    // strcpy(u->name, username);
-    // strcpy(u->password, password);
-
     return temp;
 }
 
@@ -77,7 +66,7 @@ short SocketCreate(void)
 }
 
 // Send the data to the server and set the timeout of 20 seconds
-int SocketSend(int hSocket,char* Rqst,short lenRqst)
+int SocketSend(int hSocket,char* Rqst,int lenRqst)
 {
     int shortRetval = -1;
     struct timeval tv;
@@ -124,7 +113,7 @@ int authenticate(int socket, const struct sockaddr *dest, socklen_t dlen, const 
 void printMenu() {
     printf("Selecciona la opción que deseas realizar:\n");
     printf("0) Insertar\n");
-    printf("1) Query\n");
+    printf("1) Select\n");
     printf("2) Join\n");
     printf("3) Salir\n");
     printf("?> ");
@@ -136,18 +125,17 @@ void toLower(char* c, size_t l) {
     }
 }
 
-void validateInsert(int socket, const struct sockaddr *dest, socklen_t dlen) {
+void validateInsert(int socket) {
     char table[MAX];
     scanf(" %s", table);
     toLower(table, sizeof(table));
-    unsigned char response[RESPONSE_SIZE] = {0};
     SocketSend(socket, table, sizeof(table));
     if(strcmp(table, "orders") == 0) {
         Order otemp;
         unsigned char buffer[sizeof(Order)];
         scanf(" %s %s %d", otemp.oid, otemp.pid, &otemp.qty);
         memcpy(buffer, &otemp, sizeof(buffer));
-        sendto(socket, buffer, sizeof(buffer), 0, dest, dlen);
+        SocketSend(socket, buffer, sizeof(buffer));
     } else if(strcmp(table, "products") == 0) {
         Product ptemp;
         unsigned char buffer[sizeof(Product)];
@@ -155,6 +143,24 @@ void validateInsert(int socket, const struct sockaddr *dest, socklen_t dlen) {
         memcpy(buffer, &ptemp, sizeof(buffer));
         SocketSend(socket, buffer, sizeof(buffer));
     }
+}
+
+void validateSelect(int socket) {
+    char table[MAX], rest[MAX];
+    scanf(" %s", table);
+    toLower(table, sizeof(table));
+    unsigned char buffer[sizeof(Order)];
+    Query qtemp;
+    strcpy(qtemp.table, table);
+    scanf(" %s", qtemp.attribute);
+    if(strcmp(qtemp.attribute, "*") == 0) {
+        memcpy(buffer, &qtemp, sizeof(buffer));
+        SocketSend(socket, buffer, sizeof(buffer));
+        return;
+    }
+    scanf(" %s %s", qtemp.operator, qtemp.value);
+    memcpy(buffer, &qtemp, sizeof(buffer));
+    SocketSend(socket, buffer, sizeof(buffer));
 }
 
 //main driver program
@@ -197,6 +203,7 @@ int main(int argc, char *argv[])
     enum OPERATION op;
     char params[REQUEST_SIZE];
     char table[MAX];
+    char server_reply[RESPONSE_SIZE] = {0};
     memset(params, '\0', sizeof(params));
     // Authenticated -- Run program
     do {
@@ -213,13 +220,13 @@ int main(int argc, char *argv[])
             case INSERT: 
                 printf("FORMATO [TABLE] [ATR1] [ATR2] [ATR3]\n");
                 fflush(stdout);
-                validateInsert(hSocket, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+                validateInsert(hSocket);
                 break;
             case SELECT:
                 printf("FORMATO [TABLE] [ATR1] [OPERATOR] [VALUE]\n");
-                fflush(stdout);
-                scanf(" %[^\n]", params);
-                // validateSelect(params);
+                validateSelect(hSocket);
+                SocketReceive(hSocket, server_reply, RESPONSE_SIZE);
+                printf("%s\n", server_reply);
                 break;
             case JOIN:
                 printf("FORMATO [TABLE] [TABLE]\n");

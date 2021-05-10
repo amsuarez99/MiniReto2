@@ -12,6 +12,7 @@
 #define DEBUG 1
 #define MAX 50
 #define PORT 8083
+#define RESPONSE_SIZE 200
 
 enum OPERATION {
     INSERT,
@@ -93,9 +94,10 @@ typedef struct {
 
 typedef struct{
     char table[MAX];
-    char where[2];
-    char cond[MAX];
-} Select;
+    char operator[3];
+    char value[MAX];
+    char attribute[MAX];
+} Query;
 
 struct UserNode {
 	User *usr;
@@ -341,17 +343,13 @@ int validate(User usr){
 	return 0;
 }
 
-void opInsert(const char* params) {
-    printf("Hola");
-}
-
 int main(int argc, char *argv[])
 {
     int socket_desc, sock, clientLen, read_size;
 
     struct sockaddr_in client;
     char client_message[2000]= {0};
-    char message[100] = {0};
+    char message[RESPONSE_SIZE] = {0};
     const char *pMessage = "marcelo";
 
     //Create socket
@@ -429,26 +427,40 @@ int main(int argc, char *argv[])
             switch(op){
                 case INSERT:
                     // Receiver params from server
-                    printf("Waiting for response...");
+                    printf("Waiting for response...\n");
                     recv(sock, client_message, sizeof(client_message), 0);
                     if(strcmp(client_message, "orders") == 0) {
                         Order o;
-                        printf("Waiting for response...");
+                        printf("Waiting for response...\n");
                         recv(sock, client_message, sizeof(Order), 0);
                         memcpy(&o,client_message,sizeof(Order));
                         insertOrder(&o);
                         printOrders();
                     } else if(strcmp(client_message, "products") == 0) {
                         Product p;
-                        printf("Waiting for response...");
+                        printf("Waiting for response...\n");
                         recv(sock, client_message, sizeof(Product), 0);
                         memcpy(&p,client_message,sizeof(Product));
                         insertProduct(&p);
                         printProducts();
                     }
-                break;
-                case SELECT:
-                break;
+                    break;
+                case SELECT: {
+                    Query q;
+                    printf("Waiting for response...\n");
+                    recv(sock, client_message, sizeof(Query), 0);
+                    memcpy(&q,client_message,sizeof(Query));
+                    if(strcmp(q.attribute, "*") == 0) {
+                        strcpy(message, "All the data");
+                        printf("%s", message);
+                        send(sock, message, strlen(message), 0);
+                    } else {
+                        strcpy(message, "Handfull data");
+                        printf("%s", message);
+                        send(sock, message, strlen(message), 0);
+                    }
+                    break;
+                }
                 case JOIN:
                 break;
                 //JOIN();
