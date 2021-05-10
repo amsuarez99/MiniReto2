@@ -1,25 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
 
-#define RESPONSE_SIZE 200
+#define RESPONSE_SIZE 3000
 #define MAX 50
-#define SERVER_PORT 8080
+#define SERVER_PORT 8083
 
-enum OPTION {
+enum OPERATION {
     INSERT,
-    QUERY,
+    SELECT,
     JOIN,
-    DISCONNECT,
+    DISCONNECT
 };
 
 typedef struct{
     char username[MAX];
     char password[MAX];
 } User;
+
+typedef struct{
+    char table[MAX];
+    char where[2];
+    char cond[MAX];
+} Select;
 
 // return a user
 User inputUser() {
@@ -29,6 +36,18 @@ User inputUser() {
     scanf("%s", temp.username);
     printf("Contraseña> ");
     scanf("%s", temp.password);
+
+
+    // Allocate memory for the pointers of the struct
+    // User *u = malloc(sizeof(struct User));
+
+    // // Allocate memory for contents of pointers.
+    // p->username = malloc(strlen(username) + 1);
+    // p->password = malloc(strlen(password) + 1);
+
+    // strcpy(u->name, username);
+    // strcpy(u->password, password);
+
     return temp;
 }
 
@@ -41,6 +60,18 @@ short SocketCreate(void)
     hSocket = socket(AF_INET, SOCK_STREAM, 0);
     return hSocket;
 }
+
+// // Serializes the usr to a single buffer
+// int serialize_usr(unsigned char *buffer, struct User* usr) {
+//     int x;
+//     for(x = 0; x < strlen(usr->username); x++) {
+//         buffer[i] = *(usr->username + i);
+//     }
+//     for(int i = x; i < strlen(usr->password); i++) {
+//         buffer[i] = *(usr->password + i);
+//     }
+//     return buffer + 1;
+// }
 
 // Send the data to the server and set the timeout of 20 seconds
 int SocketSend(int hSocket,char* Rqst,short lenRqst)
@@ -65,8 +96,7 @@ int SocketReceive(int hSocket,char* Rsp,short RvcSize)
     struct timeval tv;
     tv.tv_sec = 20;  /* 20 Secs Timeout */
     tv.tv_usec = 0;
-    if(setsockopt(hSocket, SOL_SOCKET, SO_RCVTIMEO,(char *)&tv,sizeof(tv)) < 0)
-    {
+    if(setsockopt(hSocket, SOL_SOCKET, SO_RCVTIMEO,(char *)&tv,sizeof(tv)) < 0) {
         perror("Time out...\n");
         exit(EXIT_FAILURE);
     }
@@ -75,6 +105,7 @@ int SocketReceive(int hSocket,char* Rsp,short RvcSize)
 }
 
 int authenticate(int socket, const struct sockaddr *dest, socklen_t dlen, const User usr) {
+
     unsigned char buffer[sizeof(User)], response[RESPONSE_SIZE] = {0};
     memcpy(buffer, &usr, sizeof(buffer));
     sendto(socket, buffer, sizeof(buffer), 0, dest, dlen);
@@ -87,19 +118,33 @@ int authenticate(int socket, const struct sockaddr *dest, socklen_t dlen, const 
     }
     return -1;
 }
+// int SELECT(int socket, const struct sockaddr *dest, socklen_t dlen, char *tabla, char where*, char *cond){
+
+//     unsigned char response[RESPONSE_SIZE] = {0};
+    
+//     select query;
+//     query.table = tabla;
+//     query.where = where;
+//     query.cond = cond;
+    
+//     sendto(socket, query, sizeof(select), 0, dest, dlen);
+//     SocketReceive(socket, response, RESPONSE_SIZE);
+    
+// }
 
 void printMenu() {
     printf("Selecciona la opción que deseas realizar:\n");
-    printf("0) Insertar\n");
-    printf("1) Query\n");
-    printf("2) Join\n");
-    printf("3) Salir\n");
+    printf("1) Insertar\n");
+    printf("2) Query\n");
+    printf("3) Join\n");
+    printf("4) Salir\n");
     printf("?> ");
 }
 
 //main driver program
 int main(int argc, char *argv[])
 {
+    char *tabla, *where, *cond;
     int hSocket, read_size;
 
     // Remote address
@@ -131,8 +176,8 @@ int main(int argc, char *argv[])
         perror("Credenciales inválidas!\n");
         exit(EXIT_FAILURE);
     }
-
-    enum OPTION op;
+    
+    enum OPERATION op;
     // Authenticated -- Run program
     do {
         printMenu();
@@ -140,7 +185,12 @@ int main(int argc, char *argv[])
         switch(op) {
             case INSERT: 
                 break;
-            case QUERY:
+            case SELECT:
+            
+            	// scanf("%s", tabla);
+            	// scanf("%s", where);
+            	// scanf("%s" cond);
+                // SELECT(hSocket, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in),tabla, where, cond);
                 break;
             case JOIN:
                 break;
