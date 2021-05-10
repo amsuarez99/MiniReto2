@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 
 #define RESPONSE_SIZE 3000
 #define REQUEST_SIZE 200
@@ -28,6 +29,19 @@ typedef struct{
     char where[2];
     char cond[MAX];
 } Select;
+
+typedef struct {
+    char pid[MAX];
+    char pname[MAX];
+    float price;
+    char description[MAX];
+} Product;
+
+typedef struct {
+    char oid[MAX];
+    char pid[MAX];
+    int qty;
+} Order;
 
 // return a user
 User inputUser() {
@@ -116,6 +130,33 @@ void printMenu() {
     printf("?> ");
 }
 
+void toLower(char* c, size_t l) {
+    for(int i = 0; i < l; i++) {
+        c[i] = tolower(c[i]);
+    }
+}
+
+void validateInsert(int socket, const struct sockaddr *dest, socklen_t dlen) {
+    char table[MAX];
+    scanf(" %s", table);
+    toLower(table, sizeof(table));
+    unsigned char response[RESPONSE_SIZE] = {0};
+    SocketSend(socket, table, sizeof(table));
+    if(strcmp(table, "orders") == 0) {
+        Order otemp;
+        unsigned char buffer[sizeof(Order)];
+        scanf(" %s %s %d", otemp.oid, otemp.pid, &otemp.qty);
+        memcpy(buffer, &otemp, sizeof(buffer));
+        sendto(socket, buffer, sizeof(buffer), 0, dest, dlen);
+    } else if(strcmp(table, "products") == 0) {
+        Product ptemp;
+        unsigned char buffer[sizeof(Product)];
+        scanf(" %s %s %f %[^\n]", ptemp.pid, ptemp.pname, &ptemp.price, ptemp.description);
+        memcpy(buffer, &ptemp, sizeof(buffer));
+        SocketSend(socket, buffer, sizeof(buffer));
+    }
+}
+
 //main driver program
 int main(int argc, char *argv[])
 {
@@ -155,6 +196,7 @@ int main(int argc, char *argv[])
     
     enum OPERATION op;
     char params[REQUEST_SIZE];
+    char table[MAX];
     memset(params, '\0', sizeof(params));
     // Authenticated -- Run program
     do {
@@ -171,8 +213,7 @@ int main(int argc, char *argv[])
             case INSERT: 
                 printf("FORMATO [TABLE] [ATR1] [ATR2] [ATR3]\n");
                 fflush(stdout);
-                scanf(" %[^\n]", params);
-                // validateInsert(params);
+                validateInsert(hSocket, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
                 break;
             case SELECT:
                 printf("FORMATO [TABLE] [ATR1] [OPERATOR] [VALUE]\n");
@@ -204,6 +245,7 @@ int main(int argc, char *argv[])
             SocketSend(hSocket, params, strlen(params));
             memset(params, '\0', sizeof(params));
         }
+
     } while(1);
     return 0;
 }

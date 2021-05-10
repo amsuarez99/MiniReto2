@@ -416,6 +416,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        printf("Waiting for response...\n");
         // Receive option from server
         while(recv(sock, client_message, 1, 0) > -1) {
             char opt;
@@ -424,11 +425,27 @@ int main(int argc, char *argv[])
             memcpy(&opt, client_message, 1);
             op = opt - '0';
             if(op == DISCONNECT) break;
-            // Receiver params from server
-            recv(sock, client_message, strlen(client_message), 0);
+            // recv(sock, client_message, strlen(client_message), 0);
             switch(op){
                 case INSERT:
-                    opInsert(client_message);
+                    // Receiver params from server
+                    printf("Waiting for response...");
+                    recv(sock, client_message, sizeof(client_message), 0);
+                    if(strcmp(client_message, "orders") == 0) {
+                        Order o;
+                        printf("Waiting for response...");
+                        recv(sock, client_message, sizeof(Order), 0);
+                        memcpy(&o,client_message,sizeof(Order));
+                        insertOrder(&o);
+                        printOrders();
+                    } else if(strcmp(client_message, "products") == 0) {
+                        Product p;
+                        printf("Waiting for response...");
+                        recv(sock, client_message, sizeof(Product), 0);
+                        memcpy(&p,client_message,sizeof(Product));
+                        insertProduct(&p);
+                        printProducts();
+                    }
                 break;
                 case SELECT:
                 break;
@@ -438,6 +455,7 @@ int main(int argc, char *argv[])
                 default:
                 break;
                 //invalid
+                printf("Waiting for response...\n");
             }
             
             memset(client_message, '\0', sizeof client_message);
