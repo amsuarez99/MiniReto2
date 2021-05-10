@@ -154,49 +154,56 @@ int main(int argc, char *argv[])
 
     
     enum OPERATION op;
-    char *params = (char*) malloc(sizeof(char) * REQUEST_SIZE);
-    memset(params, '\0', REQUEST_SIZE);
+    char params[REQUEST_SIZE];
+    memset(params, '\0', sizeof(params));
     // Authenticated -- Run program
     do {
         printMenu();
-        fflush(stdin);
         char opt;
         enum OPERATION op;
 
-        opt = getc(stdin);
+        fflush(stdout);
+        scanf(" %c", &opt);
         op = opt - '0';
         // Send option to server
         SocketSend(hSocket, &opt, 1);
         switch(op) {
             case INSERT: 
                 printf("FORMATO [TABLE] [ATR1] [ATR2] [ATR3]\n");
-                gets(params);
+                fflush(stdout);
+                scanf(" %[^\n]", params);
                 // validateInsert(params);
                 break;
             case SELECT:
                 printf("FORMATO [TABLE] [ATR1] [OPERATOR] [VALUE]\n");
-                gets(params);
+                fflush(stdout);
+                scanf(" %[^\n]", params);
                 // validateSelect(params);
                 break;
             case JOIN:
                 printf("FORMATO [TABLE] [TABLE]\n");
-                gets(params);
+                fflush(stdout);
+                scanf(" %[^\n]", params);
                 // validateJoin(params);
                 break;
             case DISCONNECT:
+                printf("Disconnecting from DB...\n");
+                close(hSocket);
+                shutdown(hSocket,0);
+                shutdown(hSocket,1);
+                shutdown(hSocket,2);
+                exit(EXIT_SUCCESS);
                 break;
             default:
                 printf("Invalid option\n");
+                fflush(stdout);
                 break;
         }
         // Send params to server
-        SocketSend(hSocket, params, strlen(params));
-        memset(params, '\0', REQUEST_SIZE);
-    } while(op != DISCONNECT);
-
-    close(hSocket);
-    shutdown(hSocket,0);
-    shutdown(hSocket,1);
-    shutdown(hSocket,2);
+        if(op != DISCONNECT) {
+            SocketSend(hSocket, params, strlen(params));
+            memset(params, '\0', sizeof(params));
+        }
+    } while(1);
     return 0;
 }

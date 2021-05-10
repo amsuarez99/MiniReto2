@@ -15,8 +15,9 @@
 
 enum OPERATION {
     INSERT,
-    QUERY,
+    SELECT,
     JOIN,
+    DISCONNECT
 };
 
 static void daemonize()
@@ -418,16 +419,18 @@ int main(int argc, char *argv[])
         // Receive option from server
         while(recv(sock, client_message, 1, 0) > -1) {
             char opt;
-            memcpy(&opt, client_message, 1);
             enum OPERATION op;
+
+            memcpy(&opt, client_message, 1);
             op = opt - '0';
+            if(op == DISCONNECT) break;
             // Receiver params from server
             recv(sock, client_message, strlen(client_message), 0);
             switch(op){
                 case INSERT:
                     opInsert(client_message);
                 break;
-                case QUERY:
+                case SELECT:
                 break;
                 case JOIN:
                 break;
