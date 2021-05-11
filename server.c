@@ -365,10 +365,6 @@ int BindCreatedSocket(int hSocket)
     return iRetval;
 }
 
-User *castToUser(unsigned char *buffer, User usr)
-{
-    return (User *)buffer;
-}
 //validar usuarios
 int validate(User usr)
 {
@@ -422,10 +418,31 @@ void query(char *message, Query q)
             struct OrderNode *curr = orders.head;
             while (curr != NULL)
             {
-                // if(strcmp(q.attribute, "oid"))  {
-                //     curr->order->oid;
-                // }
-                sprintf(aux, "%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
+                if(strcmp(q.attribute, "oid") == 0) {
+                    if(strcmp(q.operator, "EQ") == 0) {
+                        if(strcmp(curr->order->oid, q.value) == 0) {
+                            sprintf(aux, "%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
+                        }
+                    }
+                } else if(strcmp(q.attribute, "pid") == 0) {
+                    if(strcmp(q.operator, "EQ") == 0) {
+                        if(strcmp(curr->order->oid, q.value) == 0) {
+                            sprintf(aux, "%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
+                        }
+                    }
+                } else if(strcmp(q.attribute, "qty") == 0) {
+                    if(strcmp(q.operator, "LT") == 0 && curr->order->qty < atoi(q.value)) {
+                        sprintf(aux, "%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
+                    } else if(strcmp(q.operator, "LTE") == 0 && curr->order->qty <= atoi(q.value)) {
+                        sprintf(aux, "%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
+                    } else if(strcmp(q.operator, "GT") == 0 && curr->order->qty > atoi(q.value)) {
+                        sprintf(aux, "%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
+                    } else if(strcmp(q.operator, "GTE") == 0 && curr->order->qty >= atoi(q.value)) {
+                        sprintf(aux, "%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
+                    } else if(strcmp(q.operator, "EQ") == 0 && curr->order->qty == atoi(q.value)) {
+                        sprintf(aux, "%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
+                    }
+                }
                 strcat(message, aux);
                 memset(aux, '\0', RESPONSE_SIZE);
                 curr = curr->next;
@@ -436,8 +453,37 @@ void query(char *message, Query q)
             struct ProductNode *curr = products.head;
             while (curr != NULL)
             {
-                sprintf(aux, "%s %s %f ", curr->product->pid, curr->product->pname, curr->product->price);
-                strcat(aux, curr->product->description);
+                if(strcmp(q.attribute, "pid") == 0) {
+                    if(strcmp(q.operator, "EQ") == 0) {
+                        if(strcmp(curr->product->pid, q.value) == 0) {
+                            sprintf(aux, "%s %s %f %s\n", curr->product->pid, curr->product->pname, curr->product->price, curr->product->description);
+                        }
+                    }
+                } else if(strcmp(q.attribute, "pname") == 0) {
+                    if(strcmp(q.operator, "EQ") == 0) {
+                        if(strcmp(curr->product->pname, q.value) == 0) {
+                            sprintf(aux, "%s %s %f %s\n", curr->product->pid, curr->product->pname, curr->product->price, curr->product->description);
+                        }
+                    }
+                } else if(strcmp(q.attribute, "description") == 0) {
+                    if(strcmp(q.operator, "EQ") == 0) {
+                        if(strcmp(curr->product->description, q.value) == 0) {
+                            sprintf(aux, "%s %s %f %s\n", curr->product->pid, curr->product->pname, curr->product->price, curr->product->description);
+                        }
+                    }
+                } else if(strcmp(q.attribute, "price") == 0) {
+                    if(strcmp(q.operator, "LT") == 0 && curr->product->price < atof(q.value)) {
+                        sprintf(aux, "%s %s %f %s\n", curr->product->pid, curr->product->pname, curr->product->price, curr->product->description);
+                    } else if(strcmp(q.operator, "LTE") == 0 && curr->product->price <= atof(q.value)) {
+                        sprintf(aux, "%s %s %f %s\n", curr->product->pid, curr->product->pname, curr->product->price, curr->product->description);
+                    } else if(strcmp(q.operator, "GT") == 0 && curr->product->price > atof(q.value)) {
+                        sprintf(aux, "%s %s %f %s\n", curr->product->pid, curr->product->pname, curr->product->price, curr->product->description);
+                    } else if(strcmp(q.operator, "GTE") == 0 && curr->product->price >= atof(q.value)) {
+                        sprintf(aux, "%s %s %f %s\n", curr->product->pid, curr->product->pname, curr->product->price, curr->product->description);
+                    } else if(strcmp(q.operator, "EQ") == 0 && curr->product->price == atof(q.value)) {
+                        sprintf(aux, "%s %s %f %s\n", curr->product->pid, curr->product->pname, curr->product->price, curr->product->description);
+                    }
+                }
                 strcat(message, aux);
                 memset(aux, '\0', RESPONSE_SIZE);
                 curr = curr->next;
@@ -455,19 +501,17 @@ void join(char *message) {
     {
         while (pcurr != NULL)
         {
-            if (ocurr->order->pid == pcurr->product->pid)
+            if (strcmp(ocurr->order->pid, pcurr->product->pid) == 0)
             {
-                sprintf(aux, "%s %s %d %s %s %f %s ",
+                sprintf(aux, "%s %s %d %s %s %f %s\n",
                         ocurr->order->oid, ocurr->order->pid, ocurr->order->qty, pcurr->product->pid, pcurr->product->pname, pcurr->product->price, pcurr->product->description);
                 strcat(message, aux);
                 memset(aux, '\0', RESPONSE_SIZE);
-                printf("hola");
             }
             pcurr = pcurr->next;
         }
         pcurr = products.head;
         ocurr = ocurr->next;
-        printf("hola2");
     }
     free(aux);
 }
@@ -479,7 +523,6 @@ int main(int argc, char *argv[])
     struct sockaddr_in client;
     char client_message[2000] = {0};
     char message[RESPONSE_SIZE] = {0};
-    const char *pMessage = "marcelo";
 
     //Create socket
     socket_desc = SocketCreate();
