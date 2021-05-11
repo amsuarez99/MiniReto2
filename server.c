@@ -15,13 +15,30 @@
 #define RESPONSE_SIZE 3000
 #define REQUEST_SIZE 200
 
-enum OPERATION
-{
-    INSERT,
-    SELECT,
-    JOIN,
-    DISCONNECT
-};
+FILE *fOrders = NULL, *fProducts = NULL, *fConfig = NULL;
+
+static void signalHandler(int signo) {
+    if(signo == SIGTERM) {
+        if (fclose(fProducts) != 0)
+    	{
+             perror("Error in fclose\n");
+             syslog(LOG_NOTICE, "Error in fclose");
+             exit(EXIT_FAILURE);
+    	}
+    	if (fclose(fOrders) != 0)
+    	{
+             perror("Error in fclose\n");
+             syslog(LOG_NOTICE, "Error in fclose");
+             exit(EXIT_FAILURE);
+    	}
+    	if (fclose(fConfig) != 0)
+    	{
+             perror("Error in fclose\n");
+             syslog(LOG_NOTICE, "Error in fclose");
+             exit(EXIT_FAILURE);
+    	}
+    }
+}
 
 static void daemonize()
 {
@@ -43,9 +60,7 @@ static void daemonize()
         exit(EXIT_FAILURE);
 
     /* Catch, ignore and handle signals */
-    /*TODO: Implement a working signal handler */
-    signal(SIGCHLD, SIG_IGN);
-    signal(SIGHUP, SIG_IGN);
+    signal(SIGTERM, signalHandler);
 
     /* Fork off for the second time*/
     pid = fork();
@@ -63,7 +78,7 @@ static void daemonize()
 
     /* Change the working directory to the root directory */
     /* or another appropriated directory */
-    chdir("/home/nestor/Documents");
+    chdir("Users/amsua/Documents/Tec/Feb-2021/progra/sockets/");
 
     /* Close all open file descriptors */
     int x;
@@ -75,6 +90,14 @@ static void daemonize()
     /* Open the log file */
     openlog("SERVER", LOG_PID, LOG_DAEMON);
 }
+
+enum OPERATION
+{
+    INSERT,
+    SELECT,
+    JOIN,
+    DISCONNECT
+};
 
 typedef struct
 {
@@ -228,7 +251,7 @@ void insertProduct(Product *tmpProduct)
 
 FILE* readOrders()
 {
-    FILE *file;
+    FILE* file;
     char *fileName = "orders.txt";
     Order *order = (Order *)malloc(sizeof(Order));
 
@@ -279,7 +302,7 @@ FILE* readProducts()
     return file;
 }
 
-void readConfig()
+FILE* readConfig()
 {
     FILE *file;
     char *fileName = "config.txt";
@@ -310,6 +333,7 @@ void readConfig()
         syslog(LOG_NOTICE, "Error in fclose");
         exit(EXIT_FAILURE);
     }
+    return file;
 }
 
 void printUsers()
@@ -416,7 +440,7 @@ void query(char *message, Query q)
                     }
                 } else if(strcmp(q.attribute, "pid") == 0) {
                     if(strcmp(q.operator, "EQ") == 0) {
-                        if(strcmp(curr->order->oid, q.value) == 0) {
+                        if(strcmp(curr->order->pid, q.value) == 0) {
                             sprintf(aux, "%s %s %d\n", curr->order->oid, curr->order->pid, curr->order->qty);
                         }
                     }
@@ -508,6 +532,7 @@ void join(char *message) {
 
 int main(int argc, char *argv[])
 {
+    daemonize();
     int socket_desc, sock, clientLen, read_size;
 
     struct sockaddr_in client;
@@ -539,12 +564,13 @@ int main(int argc, char *argv[])
     listen(socket_desc, 3);
 
     // Read config file
-    readConfig();
+    fConfig = readConfig();
+    fProducts = readProducts();
+    fOrders = readOrders();
 
     //Accept an incoming connection
     while (1)
     {
-        FILE *fileProducts = readProducts(), *fileOrders = readOrders();
         printf("Waiting for incoming connections...\n");
         clientLen = sizeof(struct sockaddr_in);
         //accept connection from an incoming client
@@ -605,8 +631,8 @@ int main(int argc, char *argv[])
                     printf("Waiting for response...\n");
                     recv(sock, client_message, sizeof(Order), 0);
                     memcpy(&o, client_message, sizeof(Order));
-                    fprintf(fileOrders, "\n%s %s %d", o.oid, o.pid, o.qty);
-                    fflush(fileOrders);
+                    fprintf(fOrders, "\n%s %s %d", o.oid, o.pid, o.qty);
+                    fflush(fOrders);
                     insertOrder(&o);
                     printOrders();
                 }
@@ -616,8 +642,8 @@ int main(int argc, char *argv[])
                     printf("Waiting for response...\n");
                     recv(sock, client_message, sizeof(Product), 0);
                     memcpy(&p, client_message, sizeof(Product));
-                    fprintf(fileProducts, "\n%s %s %f %s", p.pid, p.pname, p.price, p.description);
-                    fflush(fileProducts);
+                    fprintf(fProducts, "\n%s %s %f %s", p.pid, p.pname, p.price, p.description);
+                    fflush(fProducts);
                     insertProduct(&p);
                     printProducts();
                 }
@@ -650,18 +676,6 @@ int main(int argc, char *argv[])
             sleep(1);
         }
 
-        if (fclose(fileProducts) != 0)
-    	{
-             perror("Error in fclose\n");
-             syslog(LOG_NOTICE, "Error in fclose");
-             exit(EXIT_FAILURE);
-    	}
-    	if (fclose(fileOrders) != 0)
-    	{
-             perror("Error in fclose\n");
-             syslog(LOG_NOTICE, "Error in fclose");
-             exit(EXIT_FAILURE);
-    	}
         printf("Closing socket...\n");
         close(sock);
     }
