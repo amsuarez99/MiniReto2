@@ -10,7 +10,7 @@
 #define RESPONSE_SIZE 3000
 #define REQUEST_SIZE 200
 #define MAX 50
-#define SERVER_PORT 8083
+#define SERVER_PORT 8084
 
 enum OPERATION
 {
@@ -140,14 +140,14 @@ void toLower(char *c, size_t l)
 void validateInsert(int socket)
 {
     char table[MAX];
-    scanf(" %s", table);
+    scanf("%s", table);
     toLower(table, sizeof(table));
     SocketSend(socket, table, sizeof(table));
     if (strcmp(table, "orders") == 0)
     {
         Order otemp;
         unsigned char buffer[sizeof(Order)];
-        scanf(" %s %s %d", otemp.oid, otemp.pid, &otemp.qty);
+        scanf("%s %s %d", otemp.oid, otemp.pid, &otemp.qty);
         memcpy(buffer, &otemp, sizeof(buffer));
         SocketSend(socket, buffer, sizeof(buffer));
     }
@@ -155,7 +155,7 @@ void validateInsert(int socket)
     {
         Product ptemp;
         unsigned char buffer[sizeof(Product)];
-        scanf(" %s %s %f %[^\n]", ptemp.pid, ptemp.pname, &ptemp.price, ptemp.description);
+        scanf("%s %s %f %[^\n]", ptemp.pid, ptemp.pname, &ptemp.price, ptemp.description);
         memcpy(buffer, &ptemp, sizeof(buffer));
         SocketSend(socket, buffer, sizeof(buffer));
     }

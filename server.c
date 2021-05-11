@@ -11,7 +11,7 @@
 
 #define DEBUG 1
 #define MAX 50
-#define PORT 8083
+#define PORT 8084
 #define RESPONSE_SIZE 3000
 #define REQUEST_SIZE 200
 
@@ -608,7 +608,6 @@ int main(int argc, char *argv[])
             switch (op)
             {
             case INSERT:
-                // Receiver params from server
                 printf("Waiting for response...\n");
                 recv(sock, client_message, sizeof(client_message), 0);
                 if (strcmp(client_message, "orders") == 0)
