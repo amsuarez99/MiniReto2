@@ -10,7 +10,7 @@
 #define RESPONSE_SIZE 3000
 #define REQUEST_SIZE 200
 #define MAX 50
-#define SERVER_PORT 8084
+#define SERVER_PORT 8085
 
 enum OPERATION
 {

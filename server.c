@@ -11,7 +11,7 @@
 
 #define DEBUG 1
 #define MAX 50
-#define PORT 8084
+#define PORT 8085
 #define RESPONSE_SIZE 3000
 #define REQUEST_SIZE 200
 
@@ -226,7 +226,7 @@ void insertProduct(Product *tmpProduct)
     products.size++;
 }
 
-void readOrders()
+FILE* readOrders()
 {
     FILE *file;
     char *fileName = "orders.txt";
@@ -249,15 +249,10 @@ void readOrders()
         fscanf(file, "%s %s %d", order->oid, order->pid, &order->qty);
         insertOrder(order);
     }
-    if (fclose(file) != 0)
-    {
-        perror("Error in fclose\n");
-        exit(EXIT_FAILURE);
-    }
-    printf("File closed sucessfully\n");
+    return file;
 }
 
-void readProducts()
+FILE* readProducts()
 {
     FILE *file;
     char *fileName = "products.txt";
@@ -281,12 +276,7 @@ void readProducts()
         fscanf(file, "%s %s %f %[^\n]", product->pid, product->pname, &product->price, product->description);
         insertProduct(product);
     }
-    if (fclose(file) != 0)
-    {
-        perror("Error in fclose\n");
-        exit(EXIT_FAILURE);
-    }
-    printf("File closed sucessfully\n");
+    return file;
 }
 
 void readConfig()
@@ -550,12 +540,11 @@ int main(int argc, char *argv[])
 
     // Read config file
     readConfig();
-    readProducts();
-    readOrders();
 
     //Accept an incoming connection
     while (1)
     {
+        FILE *fileProducts = readProducts(), *fileOrders = readOrders();
         printf("Waiting for incoming connections...\n");
         clientLen = sizeof(struct sockaddr_in);
         //accept connection from an incoming client
@@ -616,6 +605,8 @@ int main(int argc, char *argv[])
                     printf("Waiting for response...\n");
                     recv(sock, client_message, sizeof(Order), 0);
                     memcpy(&o, client_message, sizeof(Order));
+                    fprintf(fileOrders, "\n%s %s %d", o.oid, o.pid, o.qty);
+                    fflush(fileOrders);
                     insertOrder(&o);
                     printOrders();
                 }
@@ -625,6 +616,8 @@ int main(int argc, char *argv[])
                     printf("Waiting for response...\n");
                     recv(sock, client_message, sizeof(Product), 0);
                     memcpy(&p, client_message, sizeof(Product));
+                    fprintf(fileProducts, "\n%s %s %f %s", p.pid, p.pname, p.price, p.description);
+                    fflush(fileProducts);
                     insertProduct(&p);
                     printProducts();
                 }
@@ -657,6 +650,18 @@ int main(int argc, char *argv[])
             sleep(1);
         }
 
+        if (fclose(fileProducts) != 0)
+    	{
+             perror("Error in fclose\n");
+             syslog(LOG_NOTICE, "Error in fclose");
+             exit(EXIT_FAILURE);
+    	}
+    	if (fclose(fileOrders) != 0)
+    	{
+             perror("Error in fclose\n");
+             syslog(LOG_NOTICE, "Error in fclose");
+             exit(EXIT_FAILURE);
+    	}
         printf("Closing socket...\n");
         close(sock);
     }
